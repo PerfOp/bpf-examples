@@ -116,6 +116,8 @@ static struct ether_addr opt_txdmac = {{ 0x3c, 0xfd, 0xfe,
 					 0x9e, 0x7f, 0x71 }};
 static struct ether_addr opt_txsmac = {{ 0xec, 0xb1, 0xd7,
 					 0x98, 0x3a, 0xc0 }};
+static int opt_txdip= 0x0a0a0a10;
+static int opt_txsip= 0x0a0a0a20;
 static bool opt_extra_stats;
 static bool opt_quiet;
 static bool opt_app_stats;
@@ -945,8 +947,10 @@ static void gen_eth_hdr_data(void)
 	ip_hdr->frag_off = 0;
 	ip_hdr->ttl = IPDEFTTL;
 	ip_hdr->protocol = IPPROTO_UDP;
-	ip_hdr->saddr = htonl(0x0a0a0a10);
-	ip_hdr->daddr = htonl(0x0a0a0a20);
+	/* ip_hdr->saddr = htonl(0x0a0a0a10); */
+	/* ip_hdr->daddr = htonl(0x0a0a0a20); */
+  ip_hdr->saddr = opt_txsip;
+  ip_hdr->daddr = opt_txdip;
 
 	/* IP header checksum */
 	ip_hdr->check = 0;
@@ -1110,6 +1114,8 @@ static struct option long_options[] = {
 	{"tx-vlan-pri", required_argument, 0, 'K'},
 	{"tx-dmac", required_argument, 0, 'G'},
 	{"tx-smac", required_argument, 0, 'H'},
+	{"tx-dip", required_argument, 0, 'g'},
+	{"tx-sip", required_argument, 0, 'h'},
 	{"tx-cycle", required_argument, 0, 'T'},
 	{"tstamp", no_argument, 0, 'y'},
 	{"policy", required_argument, 0, 'W'},
@@ -1160,6 +1166,8 @@ static void usage(const char *prog)
 		"  -K, --tx-vlan-pri=n  Tx VLAN Priority [0-7]. Default: %d (For -V|--tx-vlan)\n"
 		"  -G, --tx-dmac=<MAC>  Dest MAC addr of TX frame in aa:bb:cc:dd:ee:ff format (For -V|--tx-vlan)\n"
 		"  -H, --tx-smac=<MAC>  Src MAC addr of TX frame in aa:bb:cc:dd:ee:ff format (For -V|--tx-vlan)\n"
+		"  -g, --tx-dip=<IP>  Dest IP addr of TX frame in xx.xx.xx.xx format (For -V|--tx-vlan)\n"
+		"  -h, --tx-sip=<IP>  Src IP addr of TX frame in xx.xx.xx.xx format (For -V|--tx-vlan)\n"
 		"  -T, --tx-cycle=n     Tx cycle time in micro-seconds (For -t|--txonly).\n"
 		"  -y, --tstamp         Add time-stamp to packet (For -t|--txonly).\n"
 		"  -W, --policy=POLICY  Schedule policy. Default: SCHED_OTHER\n"
@@ -1186,10 +1194,11 @@ static void parse_command_line(int argc, char **argv)
 	int option_index, c;
 
 	opterr = 0;
+  printf ("---------------------------------------");
 
 	for (;;) {
 		c = getopt_long(argc, argv,
-				"rtli:q:pSNn:w:O:czf:muMd:b:C:s:P:VJ:K:G:H:T:yW:U:xQaI:BRF",
+				"rtli:q:pSNn:w:O:czf:muMd:b:C:s:P:VJ:K:G:H:g:h:T:yW:U:xQaI:BRF",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1299,6 +1308,22 @@ static void parse_command_line(int argc, char **argv)
 			if (!ether_aton_r(optarg,
 					  (struct ether_addr *)&opt_txsmac)) {
 				fprintf(stderr, "Invalid smac address:%s\n",
+					optarg);
+				usage(basename(argv[0]));
+			}
+			break;
+		case 'g':
+      opt_txdip=inet_addr(optarg);
+      if(opt_txdip==INADDR_NONE){
+				fprintf(stderr, "Invalid dip address:%s\n",
+					optarg);
+				usage(basename(argv[0]));
+      }
+			break;
+		case 'h':
+      opt_txsip=inet_addr(optarg);
+      if(opt_txsip==INADDR_NONE){
+				fprintf(stderr, "Invalid sip address:%s\n",
 					optarg);
 				usage(basename(argv[0]));
 			}
